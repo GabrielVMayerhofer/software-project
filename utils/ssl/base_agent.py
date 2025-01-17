@@ -1,5 +1,6 @@
 from rsoccer_gym.Entities import Robot
 from utils.Point import Point
+from utils.ssl.Navigation import Navigation
 
 class BaseAgent:
     """Abstract Agent."""
@@ -38,7 +39,16 @@ class BaseAgent:
         self.opponents = opponents.copy()
         self.teammates = teammates.copy()
 
-        self.decision()
+        dynamic_obstacles = [Point(r.x, r.y) for r in opponents.values()]
+        teammate_obstacles = [Point(r.x, r.y) for r_id, r in teammates.items() if r_id != self]
+
+        all_obstacles = dynamic_obstacles + teammate_obstacles
+
+        if self.targets:
+            target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, self.targets[0], all_obstacles)
+            self.set_vel(target_velocity)
+            self.set_angle_vel(target_angle_velocity)
+
         self.post_decision()
 
         return Robot( id=self.id, yellow=self.yellow,

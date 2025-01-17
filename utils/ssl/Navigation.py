@@ -1,4 +1,3 @@
-
 import math
 import numpy as np
 from rsoccer_gym.Entities import Robot
@@ -40,7 +39,18 @@ class Navigation:
     return ((value - lLower) * (rHigher - rLower) / (lHigher - lLower) + rLower)
 
   @staticmethod
-  def goToPoint(robot: Robot, target: Point):
+  def calculate_repulsion_force(robot: Point, obstacles: list[Point], radius: float = 500, factor: float = 3000):
+    total_force = Point(0,0)
+    for obstacle in obstacles:
+      distance = robot.dist_to(obstacle)
+      if distance < radius:
+        direction = (robot - obstacle).normalize()
+        repulsion = factor * (1.0/distance - 1.0/radius) / (distance ** 2)
+        total_force += direction * repulsion
+    return total_force
+
+  @staticmethod
+  def goToPoint(robot: Robot, target: Point, obstacles: list[Point], radius: float = 500):
     target = Point(target.x * M_TO_MM, target.y * M_TO_MM)
     robot_position = Point(robot.x * M_TO_MM, robot.y * M_TO_MM)
     robot_angle = Navigation.degrees_to_radians(Geometry.normalize_angle(robot.theta, 0, 180))
@@ -59,11 +69,14 @@ class Navigation:
     target_angle = (target - robot_position).angle()
     d_theta = Geometry.smallest_angle_diff(target_angle, robot_angle)
 
-    if distance_to_target > ADJUST_ANGLE_MIN_DIST:
-      v_angle = Geometry.abs_smallest_angle_diff(math.pi - ANGLE_EPSILON, d_theta)
+    repulsion_force = Navigation.calculate_repulsion_force(robot_position, obstacles, radius)
+    combined_target = target - repulsion_force
 
-      v_proportional = v_angle * (max_velocity / (math.pi - ANGLE_EPSILON))
-      global_final_velocity = Geometry.from_polar(v_proportional, target_angle)
+    new_target_angle = (combined_target - robot_position).angle()
+    d_theta = Geometry.smallest_angle_diff(new_target_angle, robot_angle)
+
+    if distance_to_target > ADJUST_ANGLE_MIN_DIST:
+      global_final_velocity = Geometry.from_polar(max_velocity, target_angle)
       target_velocity = Navigation.global_to_local_velocity(global_final_velocity.x, global_final_velocity.y, robot_angle)
 
       return target_velocity, -kp * d_theta
