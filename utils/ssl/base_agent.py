@@ -33,18 +33,15 @@ class BaseAgent:
         if len(targets) > 0:
             self.targets = targets.copy()
         elif len(self.targets) == 0 or not keep_targets:
-            self.targets = []
+            self.targets = []       
             
         self.robot = self_robot
         self.opponents = opponents.copy()
         self.teammates = teammates.copy()
 
-        dynamic_obstacles = [Point(r.x, r.y) for r in opponents.values()]
-        teammate_obstacles = [Point(r.x, r.y) for r_id, r in teammates.items() if r_id != self]
-
-        all_obstacles = dynamic_obstacles + teammate_obstacles
-
         if self.targets:
+            from sslenv import SSLExampleEnv
+            all_obstacles = SSLExampleEnv()._get_obstacles()
             target_velocity, target_angle_velocity = Navigation.goToPoint(self.robot, self.targets[0], all_obstacles)
             self.set_vel(target_velocity)
             self.set_angle_vel(target_angle_velocity)

@@ -12,6 +12,9 @@ import random
 import pygame
 from utils.CLI import Difficulty
 
+M_TO_MM: float = 1000.0
+all_obstacles = []
+
 class SSLExampleEnv(SSLBaseEnv):
     def __init__(self, render_mode="human", difficulty=Difficulty.EASY):
         field = 2   # 1: SSL Div B    2: SSL Software challenge
@@ -47,6 +50,15 @@ class SSLExampleEnv(SSLBaseEnv):
             self.field_renderer = SSLHRenderField()
             self.window_size = self.field_renderer.window_size
         
+    def _get_obstacles(self):
+        all_obstacles.clear()
+        game_frame = self._get_initial_positions_frame()
+        for robot_id, robot in game_frame.robots_blue.items():
+            all_obstacles.append(Point(robot.x * M_TO_MM, robot.y * M_TO_MM))
+        for robot_id, robot in game_frame.robots_yellow.items():
+            all_obstacles.append(Point(robot.x * M_TO_MM, robot.y * M_TO_MM))
+        return all_obstacles
+
     def _frame_to_observations(self):
         ball, robot = self.frame.ball, self.frame.robots_blue[0]
         return np.array([ball.x, ball.y, robot.x, robot.y])
